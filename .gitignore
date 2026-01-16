@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+.idea/
+.vscode/
+
+
+# --- Large data files (do not version) ---
+habitat_classification/data/train_data_part1.zip
+habitat_classification/data/train_data_part2.zip
+hierarchical_time_series_forecasting/data/weather_observations.zip
+
+habitat_classification/data/train/patches.npy
+habitat_classification/data/train/patches_part1.npy
+habitat_classification/data/train/patches_part2.npy
+
+# Optional: ignore all zip/npy in data folders
+**/data/**/*.zip
+**/data/**/*.npy
+
