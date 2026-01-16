@@ -116,17 +116,18 @@ Your model is evaluated on how well it predicts the next byte:
 
 The evaluation environment has these packages pre-installed:
 
-| Package | Notes |
-|---------|-------|
-| `torch` | **CPU-only** - main framework |
-| `transformers` | HuggingFace models |
-| `tensorflow-cpu` | TensorFlow (CPU) |
-| `jax`, `flax` | JAX ecosystem |
-| `numpy` | Numerical computing |
-| `scipy` | Scientific computing |
-| `safetensors` | Fast weight loading |
-| `datasets` | HuggingFace datasets |
-| `pyarrow` | Data serialization |
+| Package | Version | Notes |
+|---------|---------|-------|
+| `torch` | 2.9.1 | **CPU-only** - main framework |
+| `transformers` | 4.57.6 | HuggingFace models |
+| `tensorflow-cpu` | 2.20.0 | TensorFlow (CPU) |
+| `jax` | 0.8.2 | JAX ecosystem |
+| `flax` | 0.12.2 | JAX ecosystem |
+| `numpy` | 2.4.1 | Numerical computing |
+| `scipy` | 1.17.0 | Scientific computing |
+| `safetensors` | 0.7.0 | Fast weight loading |
+| `datasets` | 4.5.0 | HuggingFace datasets |
+| `pyarrow` | 22.0.0 | Data serialization |
 
 ### Need a different package?
 

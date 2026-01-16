@@ -116,17 +116,18 @@ Lægri er betra!
 
 Umhverfið fyrir matið hefur eftirfarandi pakka uppsetta:
 
-| Pakki | Athugasemd |
-|------|-----------|
-| `torch` | **CPU-only** - megintólið |
-| `transformers` | HuggingFace líkanabókasafn |
-| `tensorflow-cpu` | TensorFlow (CPU) |
-| `jax`, `flax` | JAX vistkerfið |
-| `numpy` | Töluleg útreikningur |
-| `scipy` | Vísindalegir útreikningar |
-| `safetensors` | Hraður þyngdahlöðunarstuðningur |
-| `datasets` | HuggingFace datasets |
-| `pyarrow` | Gagnaröðun/seríalísering |
+| Pakki | Útgáfa | Athugasemd |
+|-------|--------|-----------|
+| `torch` | 2.9.1 | **CPU-only** - megintólið |
+| `transformers` | 4.57.6 | HuggingFace líkanabókasafn |
+| `tensorflow-cpu` | 2.20.0 | TensorFlow (CPU) |
+| `jax` | 0.8.2 | JAX vistkerfið |
+| `flax` | 0.12.2 | JAX vistkerfið |
+| `numpy` | 2.4.1 | Töluleg útreikningur |
+| `scipy` | 1.17.0 | Vísindalegir útreikningar |
+| `safetensors` | 0.7.0 | Hraður þyngdahlöðunarstuðningur |
+| `datasets` | 4.5.0 | HuggingFace datasets |
+| `pyarrow` | 22.0.0 | Gagnaröðun/seríalísering |
 
 ### Þarf annan pakka?
 
