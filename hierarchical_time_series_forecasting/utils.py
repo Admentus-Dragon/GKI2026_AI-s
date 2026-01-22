@@ -92,51 +92,36 @@ def compute_score(
     X: np.ndarray
 ) -> float:
     """
-    Compute the competition score.
+    Competition score:
 
-    The score is a weighted average of per-sensor skill scores.
-    Skill = 1 - (RMSE_model / RMSE_baseline)
+      Score = sum_s w_s * (1 - RMSE_model_s / RMSE_baseline_s)
 
-    Sensors are weighted by sqrt(mean_flow).
+    where:
+      w_s = sqrt(mean_flow_s) / sum_s sqrt(mean_flow_s)
 
-    Args:
-        y_true: Ground truth, shape (n_samples, 72, 45)
-        y_pred: Predictions, shape (n_samples, 72, 45)
-        X: Input history, shape (n_samples, 672, 45)
-
-    Returns:
-        Score (0 = baseline performance, higher = better)
+    NOTE: score is NOT clipped; it can be negative.
     """
-    # Generate baseline predictions
     y_baseline = compute_baseline_predictions(X)
 
-    # Flatten to (n_samples * horizon, n_sensors)
     y_true_flat = y_true.reshape(-1, N_SENSORS)
     y_pred_flat = y_pred.reshape(-1, N_SENSORS)
     y_baseline_flat = y_baseline.reshape(-1, N_SENSORS)
 
-    # Compute weights based on sqrt of mean flow
     mean_flows = np.abs(y_true_flat).mean(axis=0)
-    sqrt_flows = np.sqrt(mean_flows + 1e-6)
-    weights = sqrt_flows / sqrt_flows.sum()
+    weights = np.sqrt(mean_flows + 1e-6)
+    weights = weights / (weights.sum() + 1e-12)
 
-    # Compute skill per sensor
-    skills = []
+    skills = np.zeros(N_SENSORS, dtype=np.float64)
     for s in range(N_SENSORS):
         rmse_model = np.sqrt(np.mean((y_true_flat[:, s] - y_pred_flat[:, s]) ** 2))
-        rmse_baseline = np.sqrt(np.mean((y_true_flat[:, s] - y_baseline_flat[:, s]) ** 2))
-
-        if rmse_baseline > 1e-6:
-            skill = 1 - rmse_model / rmse_baseline
+        rmse_base = np.sqrt(np.mean((y_true_flat[:, s] - y_baseline_flat[:, s]) ** 2))
+        if rmse_base > 1e-12:
+            skills[s] = 1.0 - (rmse_model / rmse_base)
         else:
-            skill = 0.0
+            skills[s] = 0.0
 
-        skills.append(skill)
+    return float(np.sum(skills * weights))
 
-    # Weighted average (clipped to 0 minimum)
-    score = max(0, np.sum(np.array(skills) * weights))
-
-    return score
 
 
 def evaluate_model(predict_fn, X: np.ndarray, y_true: np.ndarray) -> dict:

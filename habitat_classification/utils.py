@@ -77,20 +77,76 @@ def load_hierarchy():
         return json.load(f)
 
 
+# -------------------------------------------------------------------
+# Features (UPDATED): 60 features total
+#   Spectral (0-11): mean, std, min, max  -> 48
+#   Terrain  (12-14): mean, std, min, max -> 12
+#   Total: 60
+# -------------------------------------------------------------------
 def extract_features(patch: np.ndarray) -> np.ndarray:
     """
-    Extract simple features from a patch.
+    Extract fast, stable features from a SINGLE patch.
 
-    Args:
-        patch: numpy array of shape (15, 35, 35)
+    Input:
+        patch: (15, 35, 35)
 
-    Returns:
-        feature vector (30 values: 15 means + 15 stds)
+    Output:
+        (60,) float32
     """
-    # Band statistics
-    means = patch.mean(axis=(1, 2))  # 15 values
-    stds = patch.std(axis=(1, 2))    # 15 values
+    patch = np.asarray(patch, dtype=np.float32)
 
-    features = np.concatenate([means, stds])
+    if patch.shape != (15, 35, 35):
+        raise ValueError(f"Expected patch shape (15, 35, 35), got {patch.shape}")
 
-    return features
+    spectral = patch[:12]
+    spec_mean = spectral.mean(axis=(1, 2))
+    spec_std  = spectral.std(axis=(1, 2))
+    spec_min  = spectral.min(axis=(1, 2))
+    spec_max  = spectral.max(axis=(1, 2))
+
+    terrain = patch[12:15]
+    terr_mean = terrain.mean(axis=(1, 2))
+    terr_std  = terrain.std(axis=(1, 2))
+    terr_min  = terrain.min(axis=(1, 2))
+    terr_max  = terrain.max(axis=(1, 2))
+
+    feats = np.concatenate(
+        [spec_mean, spec_std, spec_min, spec_max,
+         terr_mean, terr_std, terr_min, terr_max]
+    )
+    return feats.astype(np.float32, copy=False)
+
+
+def extract_features_batch(patches: np.ndarray) -> np.ndarray:
+    """
+    Vectorized feature extraction for a BATCH of patches.
+
+    Input:
+        patches: (N, 15, 35, 35)
+
+    Output:
+        (N, 60) float32
+    """
+    patches = np.asarray(patches, dtype=np.float32)
+
+    if patches.ndim != 4 or patches.shape[1:] != (15, 35, 35):
+        raise ValueError(f"Expected patches shape (N, 15, 35, 35), got {patches.shape}")
+
+    spectral = patches[:, :12]
+    spec_mean = spectral.mean(axis=(2, 3))
+    spec_std  = spectral.std(axis=(2, 3))
+    spec_min  = spectral.min(axis=(2, 3))
+    spec_max  = spectral.max(axis=(2, 3))
+
+    terrain = patches[:, 12:15]
+    terr_mean = terrain.mean(axis=(2, 3))
+    terr_std  = terrain.std(axis=(2, 3))
+    terr_min  = terrain.min(axis=(2, 3))
+    terr_max  = terrain.max(axis=(2, 3))
+
+    feats = np.concatenate(
+        [spec_mean, spec_std, spec_min, spec_max,
+         terr_mean, terr_std, terr_min, terr_max],
+        axis=1
+    )
+    return feats.astype(np.float32, copy=False)

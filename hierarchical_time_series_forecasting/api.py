@@ -1,123 +1,81 @@
 """
 FastAPI endpoint for hot water demand forecasting.
 
-Usage:
-    python api.py
-
-The server will start on http://0.0.0.0:8080
+Run locally:
+  python api.py
+Server: http://0.0.0.0:8080
 """
+from __future__ import annotations
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, Field
+from typing import Any, List, Optional
 import numpy as np
+
 from model import predict
 
 HOST = "0.0.0.0"
 PORT = 8080
-HISTORY_LENGTH = 672  # 4 weeks of hourly data
-HORIZON = 72  # 3 days ahead
+
+HISTORY_LENGTH = 672
+HORIZON = 72
 N_SENSORS = 45
 
 
 class PredictRequest(BaseModel):
-    """Request body for /predict endpoint."""
-    sensor_history: List[List[float]]  # 672 x 45 array
-    timestamp: str  # ISO format datetime
-    weather_forecast: Optional[List[List[float]]] = None  # 72 x n_features (optional)
-    weather_history: Optional[List[List[float]]] = None  # 672 x n_features (optional)
+    sensor_history: List[List[float]] = Field(..., description="(672,45) hourly sensor values")
+    timestamp: str = Field(..., description="ISO datetime string for forecast start")
+    weather_forecast: Optional[List[List[Any]]] = Field(None, description="(72, n_features) optional")
+    weather_history: Optional[List[List[Any]]] = Field(None, description="(672, n_features) optional")
 
 
 class PredictResponse(BaseModel):
-    """Response body from /predict endpoint."""
-    predictions: List[List[float]]  # 72 x 45 array
+    predictions: List[List[float]]
 
 
-app = FastAPI(
-    title="Hot Water Forecasting API",
-    description="Predict hot water demand 72 hours ahead for 45 sensors",
-    version="1.0.0"
-)
+app = FastAPI(title="Hot Water Demand Forecast API")
 
 
-@app.get("/")
-def index():
-    """Health check endpoint."""
-    return {"status": "running", "message": "Hot Water Forecasting API"}
-
-
-@app.get("/api")
-def api_info():
-    """API information endpoint."""
-    return {
-        "service": "hot-water-forecasting",
-        "version": "1.0.0",
-        "input": {
-            "sensor_history": [HISTORY_LENGTH, N_SENSORS],
-            "timestamp": "ISO format datetime string",
-            "weather_forecast": "optional, (72, n_features)",
-            "weather_history": "optional, (672, n_features)"
-        },
-        "output": {
-            "predictions": [HORIZON, N_SENSORS]
-        },
-        "endpoints": {
-            "/": "Health check",
-            "/api": "API information",
-            "/predict": "POST - Predict future demand"
-        }
-    }
+@app.get("/health")
+def health() -> dict:
+    return {"status": "ok"}
 
 
 @app.post("/predict", response_model=PredictResponse)
-def predict_endpoint(request: PredictRequest):
-    """
-    Predict hot water demand for all sensors, 72 hours ahead.
-
-    Input:
-        - sensor_history: 672 x 45 array (4 weeks of sensor data)
-        - timestamp: ISO format datetime of first forecast hour
-        - weather_forecast: 72 x n array (optional)
-        - weather_history: 672 x n array (optional)
-
-    Output:
-        - predictions: 72 x 45 array
-    """
-    # Convert to numpy arrays
-    sensor_history = np.array(request.sensor_history)
-
-    weather_forecast = None
-    if request.weather_forecast is not None:
-        weather_forecast = np.array(request.weather_forecast)
-
-    weather_history = None
-    if request.weather_history is not None:
-        weather_history = np.array(request.weather_history)
-
-    # Validate sensor history shape
+def predict_endpoint(request: PredictRequest) -> PredictResponse:
+    sensor_history = np.asarray(request.sensor_history, dtype=float)
     if sensor_history.shape != (HISTORY_LENGTH, N_SENSORS):
         raise HTTPException(
             status_code=400,
-            detail=f"Expected sensor_history shape ({HISTORY_LENGTH}, {N_SENSORS}), got {sensor_history.shape}"
+            detail=f"sensor_history must have shape ({HISTORY_LENGTH}, {N_SENSORS}); got {sensor_history.shape}",
         )
 
-    # Get prediction from model
-    predictions = predict(
-        sensor_history,
-        request.timestamp,
-        weather_forecast,
-        weather_history
+    weather_forecast = None
+    if request.weather_forecast is not None:
+        weather_forecast = np.asarray(request.weather_forecast)  # mixed dtype is OK
+
+    weather_history = None
+    if request.weather_history is not None:
+        weather_history = np.asarray(request.weather_history)  # mixed dtype is OK
+
+    preds = predict(
+        sensor_history=sensor_history,
+        timestamp=request.timestamp,
+        weather_forecast=weather_forecast,
+        weather_history=weather_history,
     )
 
-    # Validate output shape
-    if predictions.shape != (HORIZON, N_SENSORS):
+    preds = np.asarray(preds, dtype=float)
+    if preds.shape != (HORIZON, N_SENSORS):
         raise HTTPException(
             status_code=500,
-            detail=f"Model returned wrong shape. Expected ({HORIZON}, {N_SENSORS}), got {predictions.shape}"
+            detail=f"Model returned wrong shape. Expected ({HORIZON}, {N_SENSORS}), got {preds.shape}",
         )
+    if not np.all(np.isfinite(preds)):
+        raise HTTPException(status_code=500, detail="Model returned non-finite values (NaN/Inf).")
 
-    return PredictResponse(predictions=predictions.tolist())
+    return PredictResponse(predictions=preds.tolist())
 
 
 if __name__ == "__main__":

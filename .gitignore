@@ -19,3 +19,24 @@ habitat_classification/data/train/patches_part2.npy
 **/data/**/*.zip
 **/data/**/*.npy
 
+# OS / editor junk
+*Zone.Identifier
+.DS_Store
+__pycache__/
+*.pyc
+
+# Data & artifacts
+data/
+artifacts/
+runs/
+memmaps/
+
+# Models
+*.pt
+*.npz
+*.parquet
+
+# Logs / outputs
+results.txt
+*.log
+
